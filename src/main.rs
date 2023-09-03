@@ -1,28 +1,31 @@
-use axum::{http::StatusCode, routing::get, Router};
 use rust_decimal::{prelude::FromPrimitive, Decimal};
 use serde::{Deserialize, Serialize};
+use warp::Filter;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/", get(get_all));
+    let mut product_service = ProductService::new();
+    product_service.seed_products();
+    let products_service_filter = warp::any().map(move || product_service.clone());
 
-    // run it with hyper on localhost:3000
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let get_items = warp::get()
+        .and(warp::path("products"))
+        .and(warp::path::end())
+        .and(products_service_filter.clone())
+        .and_then(get_all);
+
+    // let routes = get_items;
+
+    warp::serve(get_items).run(([127, 0, 0, 1], 3030)).await;
 }
 
-async fn get_all() -> Result<axum::Json<Vec<Product>>, (StatusCode, String)> {
-    let mut product_service = ProductService::new();
-
-    product_service.seed_products();
-
+async fn get_all(mut product_service: ProductService) -> Result<impl warp::Reply, warp::Rejection> {
     let products = product_service.get_all().await;
 
-    Ok(axum::Json(products))
+    Ok(warp::reply::json(&products))
 }
 
+#[derive(Clone)]
 pub struct ProductService {
     products: Vec<Product>,
 }
@@ -88,7 +91,7 @@ impl ProductService {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Product {
     pub id: u32,
     pub name: String,
