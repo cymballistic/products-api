@@ -21,18 +21,30 @@ impl ProductService {
             name: "Product 1".to_string(),
             brand: "Brand 1".to_string(),
             price: Decimal::from_f32(100.0).unwrap(),
+            images: vec![
+                "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
+                "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
+            ],
         });
         self.products.push(Product {
             id: 2,
             name: "Product 2".to_string(),
             brand: "Brand 2".to_string(),
             price: Decimal::from_f32(200.0).unwrap(),
+            images: vec![
+                "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
+                "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
+            ],
         });
         self.products.push(Product {
             id: 3,
             name: "Product 3".to_string(),
             brand: "Brand 3".to_string(),
             price: Decimal::from_f32(300.0).unwrap(),
+            images: vec![
+                "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
+                "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
+            ],
         });
     }
 

@@ -7,4 +7,5 @@ pub struct Product {
     pub name: String,
     pub brand: String,
     pub price: Decimal,
+    pub images: Vec<String>,
 }
