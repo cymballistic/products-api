@@ -16,19 +16,19 @@ async fn main() {
         .and(warp::path("products"))
         .and(warp::path::end())
         .and(products_service_filter.clone())
-        .and_then(get_all);
+        .and_then(get_all_products);
 
     let add_product = warp::post()
         .and(warp::path("products"))
         .and(warp::path::end())
-        .and(post_json())
+        .and(validate_post_json())
         .and(products_service_filter.clone())
         .and_then(add_product);
 
     let delete_product = warp::delete()
         .and(warp::path("products"))
         .and(warp::path::end())
-        .and(delete_json())
+        .and(validate_delete_json())
         .and(products_service_filter.clone())
         .and_then(delete_product);
 
@@ -37,17 +37,17 @@ async fn main() {
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
 
-fn post_json() -> impl Filter<Extract = (ProductPost,), Error = warp::Rejection> + Clone {
+fn validate_post_json() -> impl Filter<Extract = (ProductPost,), Error = warp::Rejection> + Clone {
     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
 
-fn delete_json() -> impl Filter<Extract = (Id,), Error = warp::Rejection> + Clone {
-    // When accepting a body, we want a JSON body
-    // (and to reject huge payloads)...
+fn validate_delete_json() -> impl Filter<Extract = (Id,), Error = warp::Rejection> + Clone {
     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
 
-async fn get_all(product_service: ProductService) -> Result<impl warp::Reply, warp::Rejection> {
+async fn get_all_products(
+    product_service: ProductService,
+) -> Result<impl warp::Reply, warp::Rejection> {
     let products = product_service.products.read();
 
     Ok(warp::reply::json(&*products))
@@ -68,7 +68,7 @@ async fn add_product(
 
     product_service.products.write().push(product);
     Ok(warp::reply::with_status(
-        "Added items to the grocery list",
+        "Added product",
         http::StatusCode::CREATED,
     ))
 }
@@ -77,15 +77,14 @@ async fn delete_product(
     id: Id,
     product_service: ProductService,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    // find index of item to remove
-    let index = product_service
+    let index_to_remove = product_service
         .products
         .read()
         .iter()
         .position(|x| x.id == id.id)
         .unwrap();
 
-    product_service.products.write().remove(index);
+    product_service.products.write().remove(index_to_remove);
 
     Ok(warp::reply::with_status(
         "Removed product",
@@ -99,7 +98,6 @@ pub struct ProductService {
 }
 
 impl ProductService {
-    // constructor
     pub fn new() -> ProductService {
         ProductService {
             products: Arc::new(RwLock::new(Vec::new())),
