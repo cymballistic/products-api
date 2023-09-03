@@ -19,7 +19,7 @@ async fn main() {
     warp::serve(get_products).run(([127, 0, 0, 1], 3030)).await;
 }
 
-async fn get_all(mut product_service: ProductService) -> Result<impl warp::Reply, warp::Rejection> {
+async fn get_all(product_service: ProductService) -> Result<impl warp::Reply, warp::Rejection> {
     let products = product_service.get_all().await;
 
     Ok(warp::reply::json(&products))
