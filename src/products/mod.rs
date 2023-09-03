@@ -25,6 +25,12 @@ impl ProductService {
                 "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
                 "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
             ],
+            sizes: vec![
+                "S".to_string(),
+                "M".to_string(),
+                "L".to_string(),
+                "XL".to_string(),
+                "XXL".to_string(),]
         });
         self.products.push(Product {
             id: 2,
@@ -35,6 +41,7 @@ impl ProductService {
                 "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
                 "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
             ],
+            sizes: vec!["S".to_string(), "L".to_string(), "XXL".to_string()],
         });
         self.products.push(Product {
             id: 3,
@@ -44,6 +51,13 @@ impl ProductService {
             images: vec![
                 "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
                 "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
+            ],
+            sizes: vec![
+                "S".to_string(),
+                "M".to_string(),
+                "L".to_string(),
+                "XL".to_string(),
+                "XXL".to_string(),
             ],
         });
     }
