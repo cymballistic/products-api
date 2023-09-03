@@ -1,11 +1,14 @@
-use rust_decimal::{prelude::FromPrimitive, Decimal};
+use parking_lot::RwLock;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use warp::Filter;
+use std::sync::Arc;
+use warp::{http, Filter};
+
+type Products = Vec<Product>;
 
 #[tokio::main]
 async fn main() {
-    let mut product_service = ProductService::new();
-    product_service.seed_products();
+    let product_service = ProductService::new();
     let products_service_filter = warp::any().map(move || product_service.clone());
 
     let get_products = warp::get()
@@ -14,80 +17,83 @@ async fn main() {
         .and(products_service_filter.clone())
         .and_then(get_all);
 
-    // let routes = get_items;
+    let add_product = warp::post()
+        .and(warp::path("products"))
+        .and(warp::path::end())
+        .and(post_json())
+        .and(products_service_filter.clone())
+        .and_then(add_product);
 
-    warp::serve(get_products).run(([127, 0, 0, 1], 3030)).await;
+    let delete_product = warp::delete()
+        .and(warp::path("products"))
+        .and(warp::path::end())
+        .and(delete_json())
+        .and(products_service_filter.clone())
+        .and_then(delete_product);
+
+    let routes = add_product.or(get_products).or(delete_product);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+}
+
+fn post_json() -> impl Filter<Extract = (Product,), Error = warp::Rejection> + Clone {
+    warp::body::content_length_limit(1024 * 16).and(warp::body::json())
+}
+
+fn delete_json() -> impl Filter<Extract = (Id,), Error = warp::Rejection> + Clone {
+    // When accepting a body, we want a JSON body
+    // (and to reject huge payloads)...
+    warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
 
 async fn get_all(product_service: ProductService) -> Result<impl warp::Reply, warp::Rejection> {
-    let products = product_service.get_all().await;
+    let products = product_service.products.read();
 
-    Ok(warp::reply::json(&products))
+    Ok(warp::reply::json(&*products))
+}
+
+async fn add_product(
+    product: Product,
+    product_service: ProductService,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    product_service.products.write().push(product);
+    Ok(warp::reply::with_status(
+        "Added items to the grocery list",
+        http::StatusCode::CREATED,
+    ))
+}
+
+async fn delete_product(
+    id: Id,
+    product_service: ProductService,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    // find index of item to remove
+    let index = product_service
+        .products
+        .read()
+        .iter()
+        .position(|x| x.id == id.id)
+        .unwrap();
+
+    product_service.products.write().remove(index);
+
+    Ok(warp::reply::with_status(
+        "Removed product",
+        http::StatusCode::OK,
+    ))
 }
 
 #[derive(Clone)]
 pub struct ProductService {
-    products: Vec<Product>,
+    products: Arc<RwLock<Products>>,
 }
 
 impl ProductService {
     // constructor
     pub fn new() -> ProductService {
         ProductService {
-            products: Vec::new(),
+            products: Arc::new(RwLock::new(Vec::new())),
         }
-    }
-
-    pub fn seed_products(&mut self) {
-        self.products.push(Product {
-            id: 1,
-            name: "Product 1".to_string(),
-            brand: "Brand 1".to_string(),
-            price: Decimal::from_f32(100.0).unwrap(),
-            images: vec![
-                "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
-                "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
-            ],
-            sizes: vec![
-                "S".to_string(),
-                "M".to_string(),
-                "L".to_string(),
-                "XL".to_string(),
-                "XXL".to_string(),]
-        });
-        self.products.push(Product {
-            id: 2,
-            name: "Product 2".to_string(),
-            brand: "Brand 2".to_string(),
-            price: Decimal::from_f32(200.0).unwrap(),
-            images: vec![
-                "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
-                "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
-            ],
-            sizes: vec!["S".to_string(), "L".to_string(), "XXL".to_string()],
-        });
-        self.products.push(Product {
-            id: 3,
-            name: "Product 3".to_string(),
-            brand: "Brand 3".to_string(),
-            price: Decimal::from_f32(300.0).unwrap(),
-            images: vec![
-                "https://randomwordgenerator.com/img/picture-generator/paprika-4336024_640.jpg".to_string(),
-                "https://randomwordgenerator.com/img/picture-generator/53e3d6434d5aaa14f1dc8460962e33791c3ad6e04e507440762e7ad3964acc_640.jpg".to_string()
-            ],
-            sizes: vec![
-                "S".to_string(),
-                "M".to_string(),
-                "L".to_string(),
-                "XL".to_string(),
-                "XXL".to_string(),
-            ],
-        });
-    }
-
-    // Create a function that gets all product from an in-memory list and then returns them
-    pub async fn get_all(self) -> Vec<Product> {
-        self.products
     }
 }
 
@@ -99,4 +105,9 @@ pub struct Product {
     pub price: Decimal,
     pub images: Vec<String>,
     pub sizes: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Id {
+    pub id: u32,
 }
