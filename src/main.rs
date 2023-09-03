@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use uuid::Uuid;
 use warp::{http, Filter};
 
 type Products = Vec<Product>;
@@ -36,7 +37,7 @@ async fn main() {
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
 
-fn post_json() -> impl Filter<Extract = (Product,), Error = warp::Rejection> + Clone {
+fn post_json() -> impl Filter<Extract = (ProductPost,), Error = warp::Rejection> + Clone {
     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
 }
 
@@ -53,9 +54,18 @@ async fn get_all(product_service: ProductService) -> Result<impl warp::Reply, wa
 }
 
 async fn add_product(
-    product: Product,
+    product_in: ProductPost,
     product_service: ProductService,
 ) -> Result<impl warp::Reply, warp::Rejection> {
+    let product: Product = Product {
+        id: Uuid::new_v4(),
+        name: product_in.name,
+        brand: product_in.brand,
+        price: product_in.price,
+        images: product_in.images,
+        sizes: product_in.sizes,
+    };
+
     product_service.products.write().push(product);
     Ok(warp::reply::with_status(
         "Added items to the grocery list",
@@ -99,7 +109,16 @@ impl ProductService {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Product {
-    pub id: u32,
+    pub id: Uuid,
+    pub name: String,
+    pub brand: String,
+    pub price: Decimal,
+    pub images: Vec<String>,
+    pub sizes: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ProductPost {
     pub name: String,
     pub brand: String,
     pub price: Decimal,
@@ -109,5 +128,5 @@ pub struct Product {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Id {
-    pub id: u32,
+    pub id: Uuid,
 }
