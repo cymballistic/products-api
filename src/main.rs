@@ -8,7 +8,7 @@ async fn main() {
     product_service.seed_products();
     let products_service_filter = warp::any().map(move || product_service.clone());
 
-    let get_items = warp::get()
+    let get_products = warp::get()
         .and(warp::path("products"))
         .and(warp::path::end())
         .and(products_service_filter.clone())
@@ -16,7 +16,7 @@ async fn main() {
 
     // let routes = get_items;
 
-    warp::serve(get_items).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(get_products).run(([127, 0, 0, 1], 3030)).await;
 }
 
 async fn get_all(mut product_service: ProductService) -> Result<impl warp::Reply, warp::Rejection> {
